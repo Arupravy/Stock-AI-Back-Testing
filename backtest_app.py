@@ -188,7 +188,7 @@ if st.sidebar.button("Run Backtest"):
             df['Portfolio_Value'] = df['Portfolio_Value'].ffill()
             
             # Calculate HODL value
-            df['HODL_Value'] = initial_capital * (df['Close'] / df['Close'].iloc[0]
+            df['HODL_Value'] = initial_capital * (df['Close'] / df['Close'].iloc[0])
 
             
             # Performance metrics
