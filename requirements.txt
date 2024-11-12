@@ -2,6 +2,6 @@ numpy
 pandas
 streamlit
 scikit-learn
-matplotlib.pyplot
+matplotlib
 yfinance
 datetime
