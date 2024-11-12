@@ -55,7 +55,7 @@ if st.sidebar.button("Run Backtest"):
             df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
 
             df.set_index('Date', inplace=True)
-            st.write("**Selected Stock Data:**", df.head())
+            st.write("**Selected Stock Data:**", df)
 
             # Moving average crossover settings
             short_window = 40
