@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import yfinance as yf
 from datetime import datetime
+import plotly.graph_objs as go
 
 # Streamlit App Title and Description
 st.title("Stock Backtesting Engine")
@@ -214,7 +215,22 @@ if st.sidebar.button("Run Backtest"):
                 annualized_return = (1 + total_return) ** (252 / days) - 1
             else:
                 annualized_return = 0
-    
+            
+            hodl_return = df['Close'].iloc[-1] / df['Close'].iloc[0] - 1
+            strategy_return = portfolio_value / initial_capital - 1
+            is_profitable = strategy_return > hodl_return
+
+            # Displaying a summary box based on the profitability comparison
+            if strategy_return > 0:
+                if is_profitable:
+                    st.success(f"Your strategy outperformed the HODL strategy with a profit of ${portfolio_value - initial_capital:,.2f}!")
+                else:
+                    st.info(f"Your strategy was profitable with a gain of ${portfolio_value - initial_capital:,.2f}, but did not outperform the HODL strategy.")
+            else:
+                st.error(f"Your strategy resulted in a loss of ${abs(portfolio_value - initial_capital):,.2f}. Consider revising the strategy.")
+                
+                    
+                
             # Output summary
             st.markdown(f"### Backtest Summary for {stock_choice.replace(' ', '_')}:")           
             st.write(f"Strategy Type: {strategy_type}")
@@ -234,35 +250,34 @@ if st.sidebar.button("Run Backtest"):
 
 
             # Plot Portfolio vs HODL
-            fig, ax = plt.subplots(figsize=(12, 8))
-            ax.plot(df['Portfolio_Value'], label='Portfolio Value (Strategy)', color='purple')
-            ax.plot(df['HODL_Value'], label='HODL Strategy', color='orange', linestyle='--')
-            ax.set_title('Portfolio Value vs HODL Strategy')
-            ax.set_xlabel('Date')
-            ax.set_ylabel('Value')
-            ax.legend()
-            st.pyplot(fig)
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=df.index, y=df['Portfolio_Value'], mode='lines', name='Portfolio Value (Strategy)', line=dict(color='purple')))
+            fig.add_trace(go.Scatter(x=df.index, y=df['HODL_Value'], mode='lines', name='HODL Strategy', line=dict(color='orange', dash='dash')))
+            fig.update_layout(title='Portfolio Value vs HODL Strategy', xaxis_title='Date', yaxis_title='Value')
+            st.plotly_chart(fig)
             
-            # Plot buy/sell signals with Bollinger Bands or Moving Averages
-            fig, ax = plt.subplots(figsize=(12, 8))
-            ax.plot(df['Close'], label='Close Price', color='blue', alpha=0.6)
-            ax.plot(df['Short_MA'], label=f'{short_window}-Day MA', color='green', linestyle='--')
-            ax.plot(df['Long_MA'], label=f'{long_window}-Day MA', color='red', linestyle='--')
-            ax.plot(df['Upper_Band'], label='Upper Bollinger Band', color='orange', linestyle='--')
-            ax.plot(df['Lower_Band'], label='Lower Bollinger Band', color='orange', linestyle='--')
+            
+            
             
             # Extract buy and sell signals for plotting
             buy_signals = df[df['Signal'] == 1]
             sell_signals = df[df['Signal'] == -1]
             
-            ax.plot(buy_signals.index, buy_signals['Close'], '^', markersize=10, color='green', label='Buy Signal')
-            ax.plot(sell_signals.index, sell_signals['Close'], 'v', markersize=10, color='red', label='Sell Signal')
+            # Plot buy/sell signals with Bollinger Bands or Moving Averages
+            fig2 = go.Figure()
+            fig2.add_trace(go.Scatter(x=df.index, y=df['Close'], mode='lines', name='Close Price', line=dict(color='blue')))
+            fig2.add_trace(go.Scatter(x=df.index, y=df['Short_MA'], mode='lines', name=f'{short_window}-Day MA', line=dict(color='green', dash='dash')))
+            fig2.add_trace(go.Scatter(x=df.index, y=df['Long_MA'], mode='lines', name=f'{long_window}-Day MA', line=dict(color='red', dash='dash')))
+            fig2.add_trace(go.Scatter(x=df.index, y=df['Upper_Band'], mode='lines', name='Upper Bollinger Band', line=dict(color='orange', dash='dash')))
+            fig2.add_trace(go.Scatter(x=df.index, y=df['Lower_Band'], mode='lines', name='Lower Bollinger Band', line=dict(color='orange', dash='dash')))
+            fig2.add_trace(go.Scatter(x=buy_signals.index, y=buy_signals['Close'], mode='markers', marker=dict(color='green', symbol='triangle-up'), name='Buy Signal'))
+            fig2.add_trace(go.Scatter(x=sell_signals.index, y=sell_signals['Close'], mode='markers', marker=dict(color='red', symbol='triangle-down'), name='Sell Signal'))
+            fig2.update_layout(title=f'{strategy_type} Strategy with Buy and Sell Signals', xaxis_title='Date', yaxis_title='Price')
+            st.plotly_chart(fig2)
             
-            ax.set_title(f'{strategy_type} Strategy with Buy and Sell Signals')
-            ax.set_xlabel('Date')
-            ax.set_ylabel('Price')
-            ax.legend()
-            st.pyplot(fig)
+        
+            st.subheader("Trade History")
+            st.dataframe(trades)
 
         # Execute backtest function
         backtest(stock_options[stock_choice], initial_capital, start_date, end_date, investment_type, strategy_type, transaction_cost, stop_loss_pct, take_profit_pct)
