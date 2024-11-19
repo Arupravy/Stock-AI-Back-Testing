@@ -11,7 +11,7 @@ import plotly.express as px
 st.title("📊 Stock Backtesting Engine")
 st.markdown("""
 This application allows you to backtest stock strategies using historical data.
-Select a stock, set the parameters, and analyze the performance of various trading strategies.
+Select single or multiple stocks, set the desired initial capital allocation, set the parameters, and analyze the performance of various trading strategies. **Developed by [Prakhar Agrawal](https://github.com/Arupravy)**
 """)
 
 # Stock Options Dictionary
@@ -62,11 +62,11 @@ if st.sidebar.button("Run Backtest"):
             df.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
             df['Date'] = pd.to_datetime(df['Date'], errors='coerce', utc=True)
             df = df.dropna(subset=['Date'])
-            # Add these lines above the existing line 50
+          
             start_date = pd.to_datetime(start_date).tz_localize('UTC')
             end_date = pd.to_datetime(end_date).tz_localize('UTC')
 
-            # Replace line 50 with the following line
+            
             df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
 
             df.set_index('Date', inplace=True)
@@ -104,8 +104,10 @@ if st.sidebar.button("Run Backtest"):
                 bollinger_signal = np.where(df['Close'] < df['Lower_Band'], 1, 0)
                 bollinger_signal = np.where(df['Close'] > df['Upper_Band'], -1, bollinger_signal)
                 ma_signal = np.where(df['Short_MA'] > df['Long_MA'], 1, 0)
-                df['Signal'] = np.where((bollinger_signal == 1) & (ma_signal == 1), 1, 0)
-                df['Signal'] = np.where((bollinger_signal == -1) & (ma_signal == 0), -1, df['Signal'])
+                #df['Signal'] = np.where((bollinger_signal == 1) & (ma_signal == 1), 1, 0)
+                #df['Signal'] = np.where((bollinger_signal == -1) & (ma_signal == 0), -1, df['Signal'])
+                df['Signal'] = np.where((bollinger_signal == 1) | (ma_signal == 1), 1, 0)  # Buy signal if either is true
+                df['Signal'] = np.where((bollinger_signal == -1) | (ma_signal == 0), -1, df['Signal']) 
 
             # Calculate daily returns
             df['Returns'] = df['Close'].pct_change().fillna(0)
@@ -250,7 +252,10 @@ if st.sidebar.button("Run Backtest"):
             st.write(f"Strategy Type: {strategy_type}")
             st.write(f"Initial Capital: ${initial_capital:,.2f}")
             #st.write(f"Final Portfolio Value: ${portfolio_value:.2f}")
-            st.markdown(f"**Final Portfolio Value:** <span style='color:green;'>${portfolio_value:.2f}</span>", unsafe_allow_html=True)
+            if initial_capital<portfolio_value:
+                st.markdown(f"**Final Portfolio Value:** <span style='color:green;'>${portfolio_value:.2f}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"**Final Portfolio Value:** <span style='color:red;'>${portfolio_value:.2f}</span>", unsafe_allow_html=True)
             st.write(f"{'Profit' if total_return > 0 else 'Loss'}: ${abs(portfolio_value - initial_capital):,.2f}")
             st.write(f"Total Return: {total_return_percent:.2f}%")
             st.write(f"Sharpe Ratio: {sharpe_ratio:.2f}")
@@ -336,13 +341,23 @@ if st.sidebar.button("Run Backtest"):
                 result["Final Value"] for result in portfolio_results.values()
                 )
             
-            st.subheader("## Combined Portfolio Performance")
+            st.subheader("Combined Portfolio Performance")
             st.markdown(f"Initial Capital: ${initial_capital:,.2f}")
             #st.markdown(f"Final Portfolio Value: ${final_portfolio_value:.2f}")
-            st.markdown(f"**Final Portfolio Value:** <span style='color:green; font-size:20px; font-weight:bold;'>${final_portfolio_value:.2f}</span>", unsafe_allow_html=True)
-            st.markdown(f"**Total Profit:** <span style='color:green; font-size:20px; font-weight:bold;'>${final_portfolio_value-initial_capital:.2f}</span>", unsafe_allow_html=True)
+            if initial_capital<final_portfolio_value:
+                st.markdown(f"**Final Portfolio Value:** <span style='color:green; font-size:20px; font-weight:bold;'>${final_portfolio_value:.2f}</span>", unsafe_allow_html=True)
+                st.markdown(f"**Total Profit:** <span style='color:green; font-size:20px; font-weight:bold;'>${final_portfolio_value-initial_capital:.2f}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"**Final Portfolio Value:** <span style='color:red; font-size:20px; font-weight:bold;'>${final_portfolio_value:.2f}</span>", unsafe_allow_html=True)
+                st.markdown(f"**Total Loss:** <span style='color:red; font-size:20px; font-weight:bold;'>${final_portfolio_value-initial_capital:.2f}</span>", unsafe_allow_html=True)
+                
             total_return_pct = (final_portfolio_value - initial_capital) / initial_capital * 100
-            st.markdown(f"**Total Return:** <span style='color:green; font-size:18px; font-weight:bold;'>{total_return_pct:.2f}%</span>", unsafe_allow_html=True)
+            if total_return_pct>0:
+                st.markdown(f"**Total Return:** <span style='color:green; font-size:18px; font-weight:bold;'>{total_return_pct:.2f}%</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"**Total Return:** <span style='color:red; font-size:18px; font-weight:bold;'>{total_return_pct:.2f}%</span>", unsafe_allow_html=True)
+                
+            
             #st.write(f"Total Return: {total_return_pct:.2f}%")
         else:
             st.sidebar.error("Please ensure the total allocation is 100%.")
