@@ -3,6 +3,6 @@ pandas
 streamlit
 scikit-learn
 matplotlib
-yfinance
+yfinance=0.2.54
 datetime
 plotly
